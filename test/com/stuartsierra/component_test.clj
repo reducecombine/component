@@ -1,6 +1,8 @@
 (ns com.stuartsierra.component-test
   (:require [clojure.test :refer (deftest is are)]
             [clojure.set :refer (map-invert)]
+            [orchestra.core :refer [defn-spec]]
+            [orchestra.spec.test :as st]
             [com.stuartsierra.component :as component]))
 
 (def ^:dynamic *log* nil)
@@ -319,17 +321,22 @@
                                                 (log 'ComponentF.start this)
                                                 (assoc this ::started? false))}))
 
+  ;; makes the test suite fail, on purpose, showing how defn-spec can be useful
+  (defn-spec speced-start int? [this any?]
+    (log 'ComponentG.start this)
+    (assoc this ::started? true))
+
+  (st/instrument)
+
   (defn component-g
     [x y]
     (with-meta {:state (rand-int Integer/MAX_VALUE)
                 :x x
                 :y y}
-               {`component/start (fn [this]
-                                   (log 'ComponentG.start this)
-                                   (assoc this ::started? true))
-                `component/stop (fn [this]
-                                  (log 'ComponentG.start this)
-                                  (assoc this ::started? false))}))
+      {`component/start speced-start
+       `component/stop (fn [this]
+                         (log 'ComponentG.start this)
+                         (assoc this ::started? false))}))
 
   (defrecord System3 [d f a e c g b]                          ; deliberately scrambled order
     component/Lifecycle
